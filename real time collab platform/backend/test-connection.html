@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Socket Connection</title>
+</head>
+<body>
+    <h1>Socket.io Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        const socket = io('http://localhost:5000', {
+            transports: ['websocket', 'polling']
+        });
+        
+        const statusEl = document.getElementById('status');
+        const messagesEl = document.getElementById('messages');
+        
+        function addMessage(msg) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            messagesEl.appendChild(div);
+        }
+        
+        socket.on('connect', () => {
+            statusEl.innerHTML = '✅ Connected! Socket ID: ' + socket.id;
+            addMessage('Connected to server');
+            
+            // Authenticate
+            socket.emit('authenticate', {
+                userId: 'test123',
+                username: 'Test User'
+            });
+            
+            // Test join room
+            socket.emit('join-room', {
+                roomId: 'test-room',
+                userId: 'test123',
+                username: 'Test User'
+            });
+        });
+        
+        socket.on('connected', (data) => {
+            addMessage('Server connected: ' + data.message);
+        });
+        
+        socket.on('authenticated', (data) => {
+            addMessage('✅ Authenticated as: ' + data.username);
+        });
+        
+        socket.on('room-joined', (data) => {
+            addMessage('✅ Joined room: ' + data.roomId);
+        });
+        
+        socket.on('document-update', (data) => {
+            addMessage('📝 Document update from ' + data.username + ': ' + data.content.substring(0, 50) + '...');
+        });
+        
+        socket.on('connect_error', (error) => {
+            statusEl.innerHTML = '❌ Connection error: ' + error.message;
+            addMessage('Error: ' + error.message);
+        });
+        
+        socket.on('disconnect', (reason) => {
+            statusEl.innerHTML = '❌ Disconnected: ' + reason;
+            addMessage('Disconnected: ' + reason);
+        });
+        
+        socket.on('error', (error) => {
+            addMessage('❌ Error: ' + JSON.stringify(error));
+        });
+        
+        // Test sending a message
+        setTimeout(() => {
+            if (socket.connected) {
+                socket.emit('send-message', {
+                    roomId: 'test-room',
+                    message: 'Hello from test client!'
+                });
+            }
+        }, 2000);
+    </script>
+</body>
+</html>
